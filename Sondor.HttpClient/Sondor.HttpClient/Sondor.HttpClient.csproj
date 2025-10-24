@@ -4,6 +4,18 @@
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <Title>Sondor.ProblemResults</Title>
+    <Authors>Sondor Technology</Authors>
+    <Company>Sondor Technology</Company>
+    <Description>The Sondor HTTP Client package, provides common functionality and extensions to simplify the use of HTTP clients.</Description>
+    <Copyright>LICENSE</Copyright>
+    <PackageProjectUrl>https://github.com/sondor-dev/sondor-httpclient-package</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/sondor-dev/sondor-httpclient-package</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>Sondor;HttpClient;</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>sondor-technology-logo.jpg</PackageIcon>
+    <PackageReleaseNotes>The initial release.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -123,6 +135,21 @@
     <EmbeddedResource Update="Resources\Validation\Validation.resx">
       <Generator></Generator>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="sondor-technology-logo.jpg">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
