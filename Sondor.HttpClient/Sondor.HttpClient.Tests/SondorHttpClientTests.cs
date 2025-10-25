@@ -2,13 +2,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using RichardSzalay.MockHttp;
 using Sondor.HttpClient.Constants;
-using Sondor.HttpClient.Extensions;
 using Sondor.HttpClient.Options;
 using Sondor.HttpClient.Tests.Examples;
 using Sondor.ProblemResults.Extensions;
-using Sondor.Translations.Args;
-using Sondor.Translations.Extensions;
-using Sondor.Translations.Options;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -33,7 +29,7 @@ public class SondorHttpClientTests
         var expectedOptions = CreateTestOptions();
         
         // act
-        var actual = CreateTestClient(expectedOptions);
+        var actual = TestSondorHttpClient.CreateTestClient<TestSondorHttpClient>(options: expectedOptions);
 
         // assert
         using (Assert.EnterMultipleScope())
@@ -56,7 +52,11 @@ public class SondorHttpClientTests
         mockHttpHandler
             .When(HttpMethod.Get, $"{options.Uri()}v1.0/Total")
             .Respond(HttpStatusCode.OK, JsonContent.Create(expected));
-        var client = CreateTestClient(options, mockHttpHandler);
+
+        var client = TestSondorHttpClient.CreateTestClient<TestSondorHttpClient>(options: options, clientBuilder: clientBuilder =>
+        {
+            clientBuilder.ConfigurePrimaryHttpMessageHandler(() => mockHttpHandler);
+        });
 
         // act
         var actual = await client.FindTotalAsync(TestContext.CurrentContext.CancellationToken);
@@ -82,8 +82,11 @@ public class SondorHttpClientTests
         mockHttpHandler
             .When(HttpMethod.Get, $"{options.Uri()}v1.0/Total")
             .Respond(HttpStatusCode.OK, new StringContent(value ?? string.Empty));
-        
-        var client = CreateTestClient(options, mockHttpHandler);
+
+        var client = TestSondorHttpClient.CreateTestClient<TestSondorHttpClient>(options: options, clientBuilder: clientBuilder =>
+        {
+            clientBuilder.ConfigurePrimaryHttpMessageHandler(() => mockHttpHandler);
+        });
 
         // act
         var actual = await client.FindTotalAsync(TestContext.CurrentContext.CancellationToken);
@@ -109,7 +112,10 @@ public class SondorHttpClientTests
             .When(HttpMethod.Get, $"{options.Uri()}v1.0/Total")
             .Respond(HttpStatusCode.OK, new StringContent(value ?? string.Empty));
 
-        var client = CreateTestClient(options, mockHttpHandler);
+        var client = TestSondorHttpClient.CreateTestClient<TestSondorHttpClient>(options: options, clientBuilder: clientBuilder =>
+        {
+            clientBuilder.ConfigurePrimaryHttpMessageHandler(() => mockHttpHandler);
+        });
         var request = new HttpRequestMessage(HttpMethod.Get, "v1.0/Total");
 
         // act
@@ -133,8 +139,11 @@ public class SondorHttpClientTests
         mockHttpHandler
             .When(HttpMethod.Get, $"{options.Uri()}v1.0/Total")
             .Respond(HttpStatusCode.NotFound, JsonContent.Create(expected));
-        var client = CreateTestClient(options, mockHttpHandler);
-        
+        var client = TestSondorHttpClient.CreateTestClient<TestSondorHttpClient>(options: options, clientBuilder: clientBuilder =>
+        {
+            clientBuilder.ConfigurePrimaryHttpMessageHandler(() => mockHttpHandler);
+        });
+
         var request = new HttpRequestMessage(HttpMethod.Get, "v1.0/Total");
         var actual = await client.SendAsync<int>(request, TestContext.CurrentContext.CancellationToken);
 
@@ -161,7 +170,10 @@ public class SondorHttpClientTests
         mockHttpHandler
             .When(HttpMethod.Get, $"{options.Uri()}v1.0/Total")
             .Respond(HttpStatusCode.NotFound, JsonContent.Create(expected));
-        var client = CreateTestClient(options, mockHttpHandler);
+        var client = TestSondorHttpClient.CreateTestClient<TestSondorHttpClient>(options: options, clientBuilder: clientBuilder =>
+        {
+            clientBuilder.ConfigurePrimaryHttpMessageHandler(() => mockHttpHandler);
+        });
 
         var request = new HttpRequestMessage(HttpMethod.Get, "v1.0/Total");
         var actual = await client.SendAsync(request, TestContext.CurrentContext.CancellationToken);
@@ -182,8 +194,7 @@ public class SondorHttpClientTests
     {
         // arrange
         var options = new TestSondorHttpClientOptions();
-        var httpClient = new System.Net.Http.HttpClient();
-        var client = new SondorHttpClient<TestSondorHttpClientOptions>(options, httpClient);
+        var client = TestSondorHttpClient.CreateTestClient<TestSondorHttpClient>(options: options);
         var expected = new Uri("https://example.com/");
         
         // act
@@ -201,7 +212,7 @@ public class SondorHttpClientTests
     {
         // arrange
         const string token = "test-token";
-        var client = CreateTestClient();
+        var client = TestSondorHttpClient.CreateTestClient<TestSondorHttpClient>(CreateTestOptions());
 
         // act
         client.SetBearerToken(token);
@@ -224,7 +235,7 @@ public class SondorHttpClientTests
         // arrange
         const string language = "es";
         StringWithQualityHeaderValue[] expected = [new (language)];
-        var client = CreateTestClient();
+        var client = TestSondorHttpClient.CreateTestClient<TestSondorHttpClient>(CreateTestOptions());
 
         // act
         client.SetAcceptLanguage(language);
@@ -245,7 +256,7 @@ public class SondorHttpClientTests
     public void ClearAuthorization()
     {
         // arrange
-        var client = CreateTestClient();
+        var client = TestSondorHttpClient.CreateTestClient<TestSondorHttpClient>(CreateTestOptions());
         client.SetBearerToken("test-token");
 
         // act
@@ -274,31 +285,5 @@ public class SondorHttpClientTests
         };
 
         return options;
-    }
-
-    /// <summary>
-    /// Creates a test client.
-    /// </summary>
-    /// <param name="options">The options.</param>
-    /// <param name="messageHandler">The message handler.</param>
-    /// <returns>Returns the test client.</returns>
-    private static TestSondorHttpClient CreateTestClient(TestSondorHttpClientOptions? options = null,
-        MockHttpMessageHandler? messageHandler = null)
-    {
-        options ??= CreateTestOptions();
-        messageHandler ??= new MockHttpMessageHandler();
-
-        var services = new ServiceCollection()
-            .AddTestTranslation(new SondorTranslationOptions
-            {
-                DefaultCulture = "en",
-                SupportedCultures = new LanguageArgs().Cast<string>().ToArray(),
-                UseKeyAsDefaultValue = true
-            }, "Test:Translation");
-        services.AddSondorHttpClient<TestSondorHttpClient, TestSondorHttpClientOptions, MockHttpMessageHandler>(options, messageHandler);
-        var provider = services.BuildServiceProvider();
-        var client = provider.GetRequiredService<TestSondorHttpClient>();
-
-        return client;
     }
 }

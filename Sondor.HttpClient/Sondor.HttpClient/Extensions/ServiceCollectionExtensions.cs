@@ -1,9 +1,10 @@
 ﻿using System;
-using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sondor.HttpClient.Options;
 using System.Net.Http.Headers;
+using Microsoft.Extensions.Options;
+using Sondor.Options.Extensions;
 
 namespace Sondor.HttpClient.Extensions;
 
@@ -18,34 +19,16 @@ public static class ServiceCollectionExtensions
     /// <typeparam name="THttpClient">The HTTP client type.</typeparam>
     /// <typeparam name="TOptions">The options type.</typeparam>
     /// <param name="services">The services.</param>
-    /// <param name="options">The options.</param>
+    /// <param name="section">The section name.</param>
+    /// <param name="clientConfig">The HTTP client configuration.</param>
+    /// <param name="clientBuilder">The client handler.</param>
     /// <returns>Returns the services.</returns>
     public static IServiceCollection AddSondorHttpClient<THttpClient, TOptions>(this IServiceCollection services,
-        TOptions options)
+        string section,
+        Action<System.Net.Http.HttpClient>? clientConfig = null,
+        Action<IHttpClientBuilder>? clientBuilder = null)
         where TOptions : SondorHttpClientOptions
         where THttpClient : SondorHttpClient<TOptions>
-    {
-        services.AddSondorHttpClient<THttpClient, TOptions, HttpMessageHandler>(options, new HttpClientHandler());
-        
-        return services;
-    }
-
-    /// <summary>
-    /// Add Sondor HTTP client.
-    /// </summary>
-    /// <typeparam name="THttpClient">The HTTP client type.</typeparam>
-    /// <typeparam name="TOptions">The options type.</typeparam>
-    /// <typeparam name="THttpMessageHandler">The HTTP message handler.</typeparam>
-    /// <param name="services">The services.</param>
-    /// <param name="options">The options.</param>
-    /// <param name="handler">The HTTP handler.</param>
-    /// <returns>Returns the services.</returns>
-    public static IServiceCollection AddSondorHttpClient<THttpClient, TOptions, THttpMessageHandler>(this IServiceCollection services,
-        TOptions options,
-        THttpMessageHandler? handler = null)
-        where TOptions : SondorHttpClientOptions
-        where THttpClient : SondorHttpClient<TOptions>
-        where THttpMessageHandler : HttpMessageHandler
     {
         var provider = services.BuildServiceProvider();
         var clientLogger = provider.GetService<SondorHttpClientLogger>();
@@ -71,21 +54,23 @@ public static class ServiceCollectionExtensions
 
         var version = (typeof(SondorHttpClientOptions).Assembly.GetName().Version ?? new Version(1, 0, 0)).ToString();
 
-        services.AddSingleton(options);
+        services.AddSondorOptions<TOptions>(section: section);
+        provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<TOptions>>().Value;
+
         var builder = services.AddHttpClient<THttpClient>(client =>
         {
             client.BaseAddress = options.Uri();
             client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(options.UserAgent, version));
+
+            clientConfig?.Invoke(client);
         });
         
         builder
             .RemoveAllLoggers()
             .AddLogger<SondorHttpClientLogger>();
 
-        if (handler is not null)
-        {
-            builder.ConfigurePrimaryHttpMessageHandler(() => handler);
-        }
+        clientBuilder?.Invoke(builder);
 
         return services;
     }

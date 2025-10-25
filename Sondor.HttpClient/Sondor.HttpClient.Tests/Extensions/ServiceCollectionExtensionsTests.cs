@@ -1,7 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Sondor.HttpClient.Extensions;
 using Sondor.HttpClient.Options;
 using Sondor.HttpClient.Tests.Examples;
+using Sondor.Tests.Extensions;
 using Sondor.Translations.Args;
 using Sondor.Translations.Extensions;
 using Sondor.Translations.Options;
@@ -15,6 +17,11 @@ namespace Sondor.HttpClient.Tests.Extensions;
 public class ServiceCollectionExtensionsTests
 {
     /// <summary>
+    /// The section.
+    /// </summary>
+    private const string _section = "client";
+
+    /// <summary>
     /// The services.
     /// </summary>
     private readonly IServiceCollection _services;
@@ -24,7 +31,12 @@ public class ServiceCollectionExtensionsTests
     /// </summary>
     public ServiceCollectionExtensionsTests()
     {
+        var configuration = new ConfigurationBuilder()
+            .AddOptions(new TestSondorHttpClientOptions(), _section)
+            .Build();
+        
         _services = new ServiceCollection()
+            .AddSingleton<IConfiguration>(configuration)
             .AddTestTranslation(new SondorTranslationOptions
             {
                 DefaultCulture = "en",
@@ -41,10 +53,9 @@ public class ServiceCollectionExtensionsTests
     {
         // arrange
         var expected = new TestSondorHttpClientOptions();
-        var options = new TestSondorHttpClientOptions();
 
         // act
-        _services.AddSondorHttpClient<TestSondorHttpClient, TestSondorHttpClientOptions>(options);
+        _services.AddSondorHttpClient<TestSondorHttpClient, TestSondorHttpClientOptions>(_section);
 
         // assert
         using (Assert.EnterMultipleScope())
@@ -67,7 +78,7 @@ public class ServiceCollectionExtensionsTests
         var expected = new TestSondorHttpClientOptions();
 
         // act
-        _services.AddSondorHttpClient<TestSondorHttpClient, TestSondorHttpClientOptions, HttpMessageHandler>(expected);
+        _services.AddSondorHttpClient<TestSondorHttpClient, TestSondorHttpClientOptions>(_section);
 
         // assert
         using (Assert.EnterMultipleScope())

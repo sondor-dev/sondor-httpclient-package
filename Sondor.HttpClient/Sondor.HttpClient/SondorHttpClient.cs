@@ -1,8 +1,15 @@
-﻿using Azure.Identity;
+﻿using Azure.Core;
+using Azure.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Sondor.HttpClient.Exceptions;
+using Sondor.HttpClient.Extensions;
 using Sondor.HttpClient.Options;
 using Sondor.ProblemResults;
+using Sondor.Translations.Args;
+using Sondor.Translations.Options;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -11,8 +18,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using Azure.Core;
-using Sondor.HttpClient.Extensions;
+using Sondor.Tests.Extensions;
+using Sondor.Translations.Extensions;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Sondor.HttpClient;
@@ -26,14 +33,14 @@ namespace Sondor.HttpClient;
 /// <param name="options">The options.</param>
 /// <param name="client">The HTTP client.</param>
 /// <typeparam name="TOptions">The options type.</typeparam>
-public class SondorHttpClient<TOptions>(TOptions options,
+public class SondorHttpClient<TOptions>(IOptions<TOptions> options,
     System.Net.Http.HttpClient client)
     where TOptions : SondorHttpClientOptions
 {
     /// <summary>
     /// The options.
     /// </summary>
-    public readonly TOptions Options = options;
+    public readonly TOptions Options = options.Value;
 
     /// <summary>
     /// The HTTP client.
@@ -184,7 +191,6 @@ public class SondorHttpClient<TOptions>(TOptions options,
     /// <param name="request">The request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>Returns the client response.</returns>
-    [ExcludeFromCodeCoverage]
     public async Task<HttpClientResponse> SendAsync(HttpRequestMessage request,
         CancellationToken cancellationToken = default)
     {
@@ -237,6 +243,42 @@ public class SondorHttpClient<TOptions>(TOptions options,
     public void SetAcceptLanguage(string language)
     {
         Client.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue(language));
+    }
+
+    /// <summary>
+    /// Creates a test client.
+    /// </summary>
+    /// <param name="section">The section.</param>
+    /// <param name="options">The options.</param>
+    /// <param name="clientConfig">The client config.</param>
+    /// <param name="clientBuilder">The client builder.</param>
+    /// <typeparam name="TClient">The client type.</typeparam>
+    /// <returns>Returns the test client.</returns>
+    public static TClient CreateTestClient<TClient>(TOptions options,
+        string section = "client",
+        Action<System.Net.Http.HttpClient>? clientConfig = null,
+        Action<IHttpClientBuilder>? clientBuilder = null)
+        where TClient : SondorHttpClient<TOptions>
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddOptions(options, sectionName: section)
+            .Build();
+
+        var services = new ServiceCollection()
+            .AddSingleton<IConfiguration>(configuration)
+            .AddTestTranslation(new SondorTranslationOptions
+            {
+                DefaultCulture = "en",
+                SupportedCultures = new LanguageArgs().Cast<string>().ToArray(),
+                UseKeyAsDefaultValue = true
+            }, "Test:Translation");
+
+        services.AddSondorHttpClient<TClient, TOptions>(section, clientConfig, clientBuilder);
+
+        var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<TClient>();
+
+        return client;
     }
 
     /// <summary>

@@ -1,4 +1,6 @@
-﻿namespace Sondor.HttpClient.Tests.Examples;
+﻿using Microsoft.Extensions.Options;
+
+namespace Sondor.HttpClient.Tests.Examples;
 
 /// <summary>
 /// The test Sondor HTTP client.
@@ -9,7 +11,7 @@
 /// <param name="client">The client.</param>
 /// <param name="options">The options.</param>
 public class TestSondorHttpClient(System.Net.Http.HttpClient client,
-    TestSondorHttpClientOptions options) :
+    IOptions<TestSondorHttpClientOptions> options) :
     SondorHttpClient<TestSondorHttpClientOptions>(options, client)
 {
     /// <summary>
