@@ -52,7 +52,7 @@ public static class ServiceCollectionExtensions
             services.BuildServiceProvider();
         }
 
-        var version = (typeof(SondorHttpClientOptions).Assembly.GetName().Version ?? new Version(1, 0, 0)).ToString();
+        var version = (typeof(TOptions).Assembly.GetName().Version ?? new Version(1, 0, 0)).ToString();
 
         services.AddSondorOptions<TOptions>(section: section);
         provider = services.BuildServiceProvider();

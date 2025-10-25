@@ -18,6 +18,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Sondor.Tests.Extensions;
 using Sondor.Translations.Extensions;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -252,20 +253,25 @@ public class SondorHttpClient<TOptions>(IOptions<TOptions> options,
     /// <param name="options">The options.</param>
     /// <param name="clientConfig">The client config.</param>
     /// <param name="clientBuilder">The client builder.</param>
+    /// <param name="loggingBuilder">The logging builder.</param>
     /// <typeparam name="TClient">The client type.</typeparam>
     /// <returns>Returns the test client.</returns>
     public static TClient CreateTestClient<TClient>(TOptions options,
         string section = "client",
         Action<System.Net.Http.HttpClient>? clientConfig = null,
-        Action<IHttpClientBuilder>? clientBuilder = null)
+        Action<IHttpClientBuilder>? clientBuilder = null,
+        Action<ILoggingBuilder>? loggingBuilder = null)
         where TClient : SondorHttpClient<TOptions>
     {
+        loggingBuilder ??= builder => builder.AddConsole();
+
         var configuration = new ConfigurationBuilder()
             .AddOptions(options, sectionName: section)
             .Build();
 
         var services = new ServiceCollection()
             .AddSingleton<IConfiguration>(configuration)
+            .AddLogging(loggingBuilder)
             .AddTestTranslation(new SondorTranslationOptions
             {
                 DefaultCulture = "en",
