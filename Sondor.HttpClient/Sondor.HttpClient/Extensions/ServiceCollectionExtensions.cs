@@ -27,7 +27,7 @@ public static class ServiceCollectionExtensions
         string section,
         Action<System.Net.Http.HttpClient>? clientConfig = null,
         Action<IHttpClientBuilder>? clientBuilder = null)
-        where TOptions : SondorHttpClientOptions
+        where TOptions : BaseSondorHttpClientOptions
         where THttpClient : SondorHttpClient<TOptions>
     {
         var provider = services.BuildServiceProvider();

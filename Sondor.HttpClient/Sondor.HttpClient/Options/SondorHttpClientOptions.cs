@@ -13,7 +13,8 @@ namespace Sondor.HttpClient.Options;
 /// Create a new instance of <see cref="SondorHttpClientOptions"/>.
 /// </remarks>
 /// <param name="userAgent">The user agent.</param>
-public class SondorHttpClientOptions(string userAgent)
+public class SondorHttpClientOptions(string userAgent) :
+    BaseSondorHttpClientOptions(userAgent)
 {
     /// <summary>
     /// The service name.
@@ -24,11 +25,6 @@ public class SondorHttpClientOptions(string userAgent)
     /// Determines whether to use HTTPs.
     /// </summary>
     public virtual bool UseHttps { get; init; } = true;
-
-    /// <summary>
-    /// The user agent.
-    /// </summary>
-    public string UserAgent => userAgent;
 
     /// <summary>
     /// The domain.
@@ -49,7 +45,7 @@ public class SondorHttpClientOptions(string userAgent)
     /// Gets the HTTP client URI.
     /// </summary>
     /// <returns>Returns the constructed URI.</returns>
-    public virtual Uri Uri()
+    public override Uri Uri()
     {
         var protocol = UseHttps ? "https" : "http";
         var environment = Environment.ToUriFragment();

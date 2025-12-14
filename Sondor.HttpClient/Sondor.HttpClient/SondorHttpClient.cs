@@ -36,7 +36,7 @@ namespace Sondor.HttpClient;
 /// <typeparam name="TOptions">The options type.</typeparam>
 public class SondorHttpClient<TOptions>(IOptions<TOptions> options,
     System.Net.Http.HttpClient client)
-    where TOptions : SondorHttpClientOptions
+    where TOptions : BaseSondorHttpClientOptions
 {
     /// <summary>
     /// The options.
