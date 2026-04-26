@@ -17,12 +17,11 @@ public class SondorEnvelopeTest
         string[] items, long totalItems, int page, int pageSize, int expectedTotalPages, bool expectedHasNext)
     {
         // Arrange
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        const string path = "/api/test";
         var mockHttpContext = new Mock<HttpContext>();
         var mockRequest = new Mock<HttpRequest>();
         mockRequest.Setup(r => r.Path).Returns("/api/test");
         mockHttpContext.Setup(c => c.Request).Returns(mockRequest.Object);
-        mockHttpContextAccessor.Setup(a => a.HttpContext).Returns(mockHttpContext.Object);
 
         var mockQuery = new Mock<IEnvelopeQuery>();
         mockQuery.Setup(q => q.Page).Returns(page);
@@ -34,7 +33,7 @@ public class SondorEnvelopeTest
 
         // Act
         var envelope =
-            SondorEnvelope<string>.BuildEnvelope(items, totalItems, mockHttpContextAccessor.Object, mockQuery.Object);
+            SondorEnvelope<string>.BuildEnvelope(items, totalItems, path, mockQuery.Object);
 
         // Assert
         Assert.AreEqual(items, envelope.Items);
@@ -72,24 +71,10 @@ public class SondorEnvelopeTest
 
         // Act
         var link = typeof(SondorEnvelope<string>)
-            .GetMethod("BuildLink", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-            ?.Invoke(null, new object[] { page, mockHttpContextAccessor.Object, mockQuery.Object });
+            .GetMethod("BuildLink", BindingFlags.NonPublic | BindingFlags.Static)
+            ?.Invoke(null, [page, "/api/test", mockQuery.Object]);
 
         // Assert
         Assert.AreEqual(expectedLink, link);
-    }
-
-    [Test]
-    public void BuildLink_NullHttpContextAccessor_ThrowsArgumentNullException()
-    {
-        // Arrange
-        var mockQuery = new Mock<IEnvelopeQuery>();
-
-        // Act & Assert
-        Assert.Throws<TargetInvocationException>(() =>
-            typeof(SondorEnvelope<string>)
-                .GetMethod("BuildLink",
-                    BindingFlags.NonPublic | BindingFlags.Static)
-                ?.Invoke(null, [1, null, mockQuery.Object]));
     }
 }

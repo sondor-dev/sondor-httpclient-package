@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Sondor.Queries;
+﻿using Sondor.Queries;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
@@ -26,9 +25,7 @@ public record SondorEnvelope<TData>(
     /// </summary>
     /// <param name="items">The array of data items to include in the envelope.</param>
     /// <param name="totalItems">The total number of items available across all pages.</param>
-    /// <param name="httpContextAccessor">
-    /// Provides access to the current HTTP context, used for generating navigational links.
-    /// </param>
+    /// <param name="path">The base path of the resource.</param>
     /// <param name="query">
     /// The query parameters defining pagination, sorting, filtering, and other envelope-related settings.
     /// </param>
@@ -39,7 +36,7 @@ public record SondorEnvelope<TData>(
     /// This method calculates pagination metadata and constructs navigational links based on the provided query parameters.
     /// </remarks>
     public static SondorEnvelope<TData> BuildEnvelope(TData[] items, long totalItems,
-        IHttpContextAccessor httpContextAccessor,
+        string path,
         IEnvelopeQuery query)
     {
         var totalPages = (int)Math.Ceiling((double)totalItems / query.PageSize);
@@ -54,11 +51,11 @@ public record SondorEnvelope<TData>(
         var previousPage = query.Page > 1 ? query.Page : 1;
 
         var links = new SondorEnvelopeLinks(
-            First: BuildLink(1, httpContextAccessor, query),
-            Last: BuildLink(totalPages, httpContextAccessor, query),
-            Next: BuildLink(nextPage, httpContextAccessor, query),
-            Previous: BuildLink(previousPage, httpContextAccessor, query),
-            Self: BuildLink(query.Page, httpContextAccessor, query));
+            First: BuildLink(1, path, query),
+            Last: BuildLink(totalPages, path, query),
+            Next: BuildLink(nextPage, path, query),
+            Previous: BuildLink(previousPage, path, query),
+            Self: BuildLink(query.Page, path, query));
 
         var envelope = new SondorEnvelope<TData>(items,
             metadata,
@@ -66,34 +63,25 @@ public record SondorEnvelope<TData>(
 
         return envelope;
     }
-
+    
     /// <summary>
-    /// Constructs a navigational link for a specific page based on the provided query parameters and HTTP context.
+    /// Constructs a navigational link based on the provided page number, path, and query parameters.
     /// </summary>
-    /// <param name="page">The page number for which the link is being generated.</param>
-    /// <param name="httpContextAccessor">
-    /// Provides access to the current HTTP context, used to retrieve the request path.
-    /// </param>
-    /// <param name="query">
-    /// The query parameters containing pagination, sorting, filtering, and other optional criteria.
-    /// </param>
-    /// <returns>A string representing the constructed link for the specified page.</returns>
+    /// <param name="page">The page number for which the link is being built.</param>
+    /// <param name="path">The base path of the resource.</param>
+    /// <param name="query">The query parameters containing pagination, sorting, filtering, and other options.</param>
+    /// <returns>A string representing the constructed link with the appropriate query parameters.</returns>
     /// <remarks>
-    /// The generated link includes the page number, page size, and optionally sorts, filters, search, 
-    /// and fields if they are specified in the query.
+    /// This method generates a URL with query parameters for pagination, sorting, filtering, 
+    /// searching, and field selection. It ensures that the link reflects the current state of the query.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown if <paramref name="httpContextAccessor"/> or its <see cref="IHttpContextAccessor.HttpContext"/> is null.
-    /// </exception>
     [ExcludeFromCodeCoverage]
     private static string BuildLink(
         int page,
-        IHttpContextAccessor httpContextAccessor,
+        string path,
         IEnvelopeQuery query
         )
     {
-        var path = httpContextAccessor.HttpContext!.Request.Path.Value;
-
         var link = $"{path}?page={page}&pageSize={query.PageSize}";
 
         if (query.Sorts.HasValue && query.Sorts != SortQuery.Empty)
